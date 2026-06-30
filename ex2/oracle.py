@@ -3,7 +3,8 @@ import sys
 from dotenv import load_dotenv
 
 
-def get_config(required_vars: list[str]):
+def get_config(required_vars: list[str]) -> dict[str, str | None]:
+    """Load required configuration variables from the environment."""
     config = {}
 
     for var in required_vars:
@@ -12,7 +13,8 @@ def get_config(required_vars: list[str]):
     return config
 
 
-def validate(config):
+def validate(config: dict[str, str | None]) -> list[str]:
+    """Return a list of missing configuration variables."""
     missing = []
 
     for key, value in config.items():
@@ -22,7 +24,8 @@ def validate(config):
     return missing
 
 
-def print_configuration(config):
+def print_configuration(config: dict[str, str | None]) -> None:
+    """Display the loaded configuration."""
     print("ORACLE STATUS: Reading the Matrix...")
     print()
 
@@ -43,17 +46,65 @@ def print_configuration(config):
     print(f"Zion Network: {config['ZION_ENDPOINT']}")
 
 
-def security_check():
+def check_no_hardcoded_secrets(
+    config: dict[str, str | None],
+    source_path: str,
+) -> bool:
+    """Ensure secrets are not hardcoded in the source file."""
+
+    with open(source_path, "r", encoding="utf-8") as file:
+        source = file.read()
+
+    secrets = [
+        value
+        for key, value in config.items()
+        if key in {"API_KEY", "DATABASE_URL"} and value
+    ]
+
+    return not any(secret in source for secret in secrets)
+
+
+def check_env_file_configured(
+    env_path: str,
+    gitignore_path: str,
+) -> bool:
+    """Check that .env exists and is ignored by Git."""
+
+    env_exists = os.path.isfile(env_path)
+    ignored = False
+
+    if os.path.isfile(gitignore_path):
+        with open(gitignore_path, "r", encoding="utf-8") as file:
+            ignored = ".env" in file.read()
+
+    return env_exists and ignored
+
+
+def check_production_override(key: str) -> bool:
+    """Check whether a variable is supplied directly by the environment."""
+    return key in os.environ
+
+
+def security_check(config: dict[str, str | None]) -> None:
+    """Run security-related checks."""
     print()
     print("Environment security check:")
 
-    if os.path.exists(".gitignore"):
-        print("[OK] .gitignore detected")
+    if check_no_hardcoded_secrets(config, __file__):
+        print("[OK] No hardcoded secrets detected")
     else:
-        print("[WARNING] .gitignore missing")
+        print("[WARNING] Hardcoded secrets detected")
 
-    print("[OK] No hardcoded secrets detected")
-    print("[OK] Production overrides available")
+    if check_env_file_configured(".env", ".gitignore"):
+        print("[OK] .env file properly configured")
+    else:
+        print("[WARNING] .env missing or not ignored by Git")
+
+    if check_production_override("API_KEY"):
+        print("[OK] Production overrides available")
+    else:
+        print("[INFO] No production override detected")
+
     print()
     print("The Oracle sees all configurations.")
 
@@ -63,14 +114,16 @@ def main() -> None:
 
     required_vars = [
         "MATRIX_MODE",
-        "DATABASE_URL" 
+        "DATABASE_URL",
         "API_KEY",
         "LOG_LEVEL",
         "ZION_ENDPOINT",
     ]
+
     config = get_config(required_vars)
-    
+
     missing = validate(config)
+
     if missing:
         print("ORACLE STATUS: Reading the Matrix...")
         print()
@@ -85,7 +138,7 @@ def main() -> None:
         sys.exit(1)
 
     print_configuration(config)
-    security_check()
+    security_check(config)
 
 
 if __name__ == "__main__":
