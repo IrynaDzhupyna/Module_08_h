@@ -110,6 +110,7 @@ def security_check(config: dict[str, str | None]) -> None:
 
 
 def main() -> None:
+    pre_dotenv_env = set(os.environ.keys())
     load_dotenv()
 
     required_vars = [
