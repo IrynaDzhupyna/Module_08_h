@@ -5,7 +5,7 @@ import sys
 
 class DependencyInfo:
     def __init__(
-            self, name: str,
+            self: "DependencyInfo", name: str,
             available: bool,
             description: str,
             version: str | None = None,
@@ -17,7 +17,7 @@ class DependencyInfo:
         self.description = description
         self.module = module
 
-    def show_info(self) -> None:
+    def show_info(self: "DependencyInfo") -> None:
         if self.available:
             print(f"[OK] {self.name} "
                   "({self.version}) - {self.description} ready")

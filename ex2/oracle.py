@@ -80,12 +80,12 @@ def check_env_file_configured(
     return env_exists and ignored
 
 
-def check_production_override(key: str) -> bool:
+def check_production_override(key: str, pre_dotenv_env: set[str]) -> bool:
     """Check whether a variable is supplied directly by the environment."""
-    return key in os.environ
+    return key in pre_dotenv_env
 
 
-def security_check(config: dict[str, str | None]) -> None:
+def security_check(config: dict[str, str | None], pre_dotenv_env: set[str]) -> None:
     """Run security-related checks."""
     print()
     print("Environment security check:")
@@ -100,7 +100,7 @@ def security_check(config: dict[str, str | None]) -> None:
     else:
         print("[WARNING] .env missing or not ignored by Git")
 
-    if check_production_override("API_KEY"):
+    if check_production_override(config: dict[str, str], pre_dotenv_env: set[str]):
         print("[OK] Production overrides available")
     else:
         print("[INFO] No production override detected")
@@ -111,6 +111,7 @@ def security_check(config: dict[str, str | None]) -> None:
 
 def main() -> None:
     pre_dotenv_env = set(os.environ.keys())
+    print("\npre_dotenv_env\n")
     load_dotenv()
 
     required_vars = [
@@ -139,7 +140,7 @@ def main() -> None:
         sys.exit(1)
 
     print_configuration(config)
-    security_check(config)
+    security_check(config, pre_dotenv_env)
 
 
 if __name__ == "__main__":
