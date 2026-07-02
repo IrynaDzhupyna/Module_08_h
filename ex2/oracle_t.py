@@ -34,7 +34,7 @@ def print_config(config: dict[str, str]) -> None:
         print("API Access: Production authenticated")
     else:
         print("Database: Connected to local instance")
-        print("Zion Network: {config['ZION_ENDPOINT']}")
+        print(f"Zion Network: {config['ZION_ENDPOINT']}")
 
     print(f"Log Level:{config['LOG_LEVEL']}")
     print(f"Zion Network: {config['ZION_ENDPOINT']}")
@@ -57,7 +57,7 @@ def check_env_file_configured(env_path: str, gitignore_path: str) -> bool:
 
     if os.path.isfile(gitignore_path):
         with open(gitignore_path, "r") as file:
-            return ".env" in file.read()
+            return env_exit and ".env" in file.read()
 
 
 def check_production_override(config: dict[str, str],
