@@ -41,7 +41,7 @@ def print_config(config: dict[str, str]) -> None:
 
 
 def check_no_hardcoded_secrets(config: dict[str, str],
-        source_path: str, required_keys: list) -> bool:
+        source_path: str) -> bool:
 
     secret_keys = {"API_KEY", "DATABASE_URL"}
 
@@ -49,7 +49,7 @@ def check_no_hardcoded_secrets(config: dict[str, str],
         source = file.read()
 
     for key, value in config.items():
-        if key in required_keys and value in source:
+        if key in secret_keys and value in source:
             return False
 
     return True
@@ -76,10 +76,10 @@ def check_production_override(config: dict[str, str],
 
 
 def security_check(config: dict[str, str],
-        pre_dotenv_env: set[str], required_keys: list[str]) -> None:
+        pre_dotenv_env: set[str]) -> None:
     print("\nEnviroment security check:")
 
-    if check_no_hardcoded_secrets(config, __file__, required_keys):
+    if check_no_hardcoded_secrets(config, __file__):
         print("[OK] No hardcoded secrets detected")
     else:
         print("[WARNING] Hardcoded secrets detected")
@@ -117,7 +117,7 @@ def main() -> None:
         print("\nCreate a .env file or define the missing enviroment variables.")
         sys.exit(1)
     print_config(config)
-    security_check(config, pre_dotenv_env, required_keys)
+    security_check(config, pre_dotenv_env)
 
 
 if __name__ == "__main__":
