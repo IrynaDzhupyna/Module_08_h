@@ -3,7 +3,7 @@ import sys
 from dotenv import load_dotenv
 
 
-def get_config(required_keys: list[str]) -> dict[str, str]:
+def get_config(required_keys: list[str]) -> dict[str, str | None]:
     config = {}
 
     for key in required_keys:
@@ -113,7 +113,7 @@ def main() -> None:
         for element in missing:
             print(f" - {element}")
 
-        print("\nCreate a .env file or define the missing enviroment variables.")
+        print("\nCreate a .env file or define the missing environment variables.")
         sys.exit(1)
     print_config(config)
     security_check(config, pre_dotenv_env)
