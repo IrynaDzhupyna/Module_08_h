@@ -42,6 +42,9 @@ def print_config(config: dict[str, str]) -> None:
 
 def check_no_hardcoded_secrets(config: dict[str, str],
         source_path: str, required_keys: list) -> bool:
+
+    secret_keys = {"API_KEY", "DATABASE_URL"}
+
     with open(source_path, "r") as file:
         source = file.read()
 
@@ -57,12 +60,15 @@ def check_env_file_configured(env_path: str, gitignore_path: str) -> bool:
 
     if os.path.isfile(gitignore_path):
         with open(gitignore_path, "r") as file:
-            return env_exit and ".env" in file.read()
+            return env_exist and ".env" in file.read()
+
+    return False
 
 
 def check_production_override(config: dict[str, str],
         pre_dotenv_env: set[str]) -> list[str]:
     overriden = []
+
     for key in config:
         if key in pre_dotenv_env:
             overriden.append(key)
