@@ -3,18 +3,17 @@ import sys
 from dotenv import load_dotenv
 
 
-def get_config(required_vars: list[str]) -> dict[str, str | None]:
-    """Load required configuration variables from the environment."""
+def get_config(required_keys: list[str]) -> dict[str, str | None]:
     config = {}
 
-    for var in required_vars:
-        config[var] = os.getenv(var)
+    for key in required_keys:
+        config[key] = os.getenv(key)
 
     return config
 
 
-def validate(config: dict[str, str | None]) -> list[str]:
-    """Return a list of missing configuration variables."""
+def validate_config(config: dict[str, str | None]) -> list[str]:
+
     missing = []
 
     for key, value in config.items():
@@ -24,71 +23,64 @@ def validate(config: dict[str, str | None]) -> list[str]:
     return missing
 
 
-def print_configuration(config: dict[str, str | None]) -> None:
-    """Display the loaded configuration."""
-    print("ORACLE STATUS: Reading the Matrix...")
-    print()
-
-    print("Configuration loaded:")
+def print_config(config: dict[str, str | None]) -> None:
+    print("\nConfigurations loaded:")
 
     mode = config["MATRIX_MODE"]
 
+    print(f"Mode: {mode}")
     if mode == "production":
-        print("Mode: production")
         print("Database: Connected to production instance")
         print("API Access: Production authenticated")
     else:
-        print("Mode: development")
         print("Database: Connected to local instance")
-        print("API Access: Development authenticated")
 
     print(f"Log Level: {config['LOG_LEVEL']}")
     print(f"Zion Network: {config['ZION_ENDPOINT']}")
 
 
-def check_no_hardcoded_secrets(
-    config: dict[str, str | None],
-    source_path: str,
-) -> bool:
-    """Ensure secrets are not hardcoded in the source file."""
+def check_no_hardcoded_secrets(config: dict[str, str | None],
+                               source_path: str) -> bool:
 
-    with open(source_path, "r", encoding="utf-8") as file:
+    secret_keys = {"API_KEY", "DATABASE_URL"}
+
+    with open(source_path, "r") as file:
         source = file.read()
 
-    secrets = [
-        value
-        for key, value in config.items()
-        if key in {"API_KEY", "DATABASE_URL"} and value
-    ]
+    for key, value in config.items():
+        if (
+                key in secret_keys
+                and value is not None
+                and value in source
+                ):
+            return False
 
-    return not any(secret in source for secret in secrets)
+    return True
 
 
-def check_env_file_configured(
-    env_path: str,
-    gitignore_path: str,
-) -> bool:
-    """Check that .env exists and is ignored by Git."""
-
-    env_exists = os.path.isfile(env_path)
-    ignored = False
+def check_env_file_configured(env_path: str, gitignore_path: str) -> bool:
+    env_exist = os.path.isfile(env_path)
 
     if os.path.isfile(gitignore_path):
-        with open(gitignore_path, "r", encoding="utf-8") as file:
-            ignored = ".env" in file.read()
+        with open(gitignore_path, "r") as file:
+            return env_exist and ".env" in file.read()
 
-    return env_exists and ignored
-
-
-def check_production_override(key: str, pre_dotenv_env: set[str]) -> bool:
-    """Check whether a variable is supplied directly by the environment."""
-    return key in pre_dotenv_env
+    return False
 
 
-def security_check(config: dict[str, str | None], pre_dotenv_env: set[str]) -> None:
-    """Run security-related checks."""
-    print()
-    print("Environment security check:")
+def check_production_override(config: dict[str, str | None],
+                              pre_dotenv_env: set[str]) -> list[str]:
+    overridden = []
+
+    for key in config:
+        if key in pre_dotenv_env:
+            overridden.append(key)
+    return overridden
+
+
+def security_check(config: dict[str, str | None],
+                   pre_dotenv_env: set[str]) -> None:
+    print("\nEnvironment security check:")
 
     if check_no_hardcoded_secrets(config, __file__):
         print("[OK] No hardcoded secrets detected")
@@ -98,48 +90,38 @@ def security_check(config: dict[str, str | None], pre_dotenv_env: set[str]) -> N
     if check_env_file_configured(".env", ".gitignore"):
         print("[OK] .env file properly configured")
     else:
-        print("[WARNING] .env missing or not ignored by Git")
+        print("[WARNING] .env missing or not in .gitignore")
 
-    if check_production_override(config: dict[str, str], pre_dotenv_env: set[str]):
+    overridded = check_production_override(config, pre_dotenv_env)
+    if not overridded:
         print("[OK] Production overrides available")
     else:
         print("[INFO] No production override detected")
 
-    print()
-    print("The Oracle sees all configurations.")
-
 
 def main() -> None:
     pre_dotenv_env = set(os.environ.keys())
-    print("\npre_dotenv_env\n")
     load_dotenv()
 
-    required_vars = [
-        "MATRIX_MODE",
-        "DATABASE_URL",
-        "API_KEY",
-        "LOG_LEVEL",
-        "ZION_ENDPOINT",
-    ]
+    print("ORACLE STATUS: Reading the Matrix...")
+    required_keys = [
+            "MATRIX_MODE",
+            "DATABASE_URL",
+            "API_KEY",
+            "LOG_LEVEL",
+            "ZION_ENDPOINT"]
+    config = get_config(required_keys)
 
-    config = get_config(required_vars)
-
-    missing = validate(config)
-
+    missing = validate_config(config)
     if missing:
-        print("ORACLE STATUS: Reading the Matrix...")
-        print()
-        print("WARNING: Missing configuration!")
-        print()
+        print("\nWARNING: Missing configurations!\n")
+        for element in missing:
+            print(f" - {element}")
 
-        for var in missing:
-            print(f"- {var}")
-
-        print()
-        print("Create a .env file or define the missing environment variables.")
+        print("\nCreate a .env file or define the missing "
+              "environment variables.")
         sys.exit(1)
-
-    print_configuration(config)
+    print_config(config)
     security_check(config, pre_dotenv_env)
 
 

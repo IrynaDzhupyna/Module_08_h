@@ -1,3 +1,4 @@
 pandas<3.0
 numpy<2.3
 matplotlib<3.10
+python-dotenv<2.0
