@@ -12,7 +12,7 @@ def get_config(required_keys: list[str]) -> dict[str, str]:
     return config
 
 
-def validate_config(config: dict[str, str]) -> list[str]:
+def validate_config(config: dict[str, str] | None) -> list[str]:
 
     missing = []
 
@@ -23,7 +23,7 @@ def validate_config(config: dict[str, str]) -> list[str]:
     return missing
 
 
-def print_config(config: dict[str, str]) -> None:
+def print_config(config: dict[str, str] | None) -> None:
     print("\nConfigurations loaded:")
 
     mode = config["MATRIX_MODE"]
@@ -34,13 +34,12 @@ def print_config(config: dict[str, str]) -> None:
         print("API Access: Production authenticated")
     else:
         print("Database: Connected to local instance")
-        print(f"Zion Network: {config['ZION_ENDPOINT']}")
 
-    print(f"Log Level:{config['LOG_LEVEL']}")
+    print(f"Log Level: {config['LOG_LEVEL']}")
     print(f"Zion Network: {config['ZION_ENDPOINT']}")
 
 
-def check_no_hardcoded_secrets(config: dict[str, str],
+def check_no_hardcoded_secrets(config: dict[str, str] | None,
         source_path: str) -> bool:
 
     secret_keys = {"API_KEY", "DATABASE_URL"}
@@ -67,17 +66,17 @@ def check_env_file_configured(env_path: str, gitignore_path: str) -> bool:
 
 def check_production_override(config: dict[str, str],
         pre_dotenv_env: set[str]) -> list[str]:
-    overriden = []
+    overridden = []
 
     for key in config:
         if key in pre_dotenv_env:
             overriden.append(key)
-    return overriden
+    return overridden
 
 
 def security_check(config: dict[str, str],
         pre_dotenv_env: set[str]) -> None:
-    print("\nEnviroment security check:")
+    print("\nEnvironment security check:")
 
     if check_no_hardcoded_secrets(config, __file__):
         print("[OK] No hardcoded secrets detected")
